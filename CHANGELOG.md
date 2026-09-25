@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Setting to choose the view opened from other apps ([#42])
+- New daily view showing a timeline of the day with empty stretches collapsed
+- Setting to open the daily view instead of the agenda when tapping a day in the monthly view
+
+### Changed
+- Renamed the previous daily view to Agenda
 
 ## [1.11.0] - 2026-09-23
 ### Added

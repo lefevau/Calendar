@@ -35,6 +35,7 @@ import org.fossify.calendar.extensions.seconds
 import org.fossify.calendar.extensions.tryImportEventsFromFile
 import org.fossify.calendar.extensions.updateWidgets
 import org.fossify.calendar.fragments.DayFragmentsHolder
+import org.fossify.calendar.fragments.DayTimelineFragmentsHolder
 import org.fossify.calendar.fragments.EventListFragment
 import org.fossify.calendar.fragments.MonthDayFragmentsHolder
 import org.fossify.calendar.fragments.MonthFragmentsHolder
@@ -43,6 +44,7 @@ import org.fossify.calendar.fragments.WeekFragmentsHolder
 import org.fossify.calendar.fragments.YearFragmentsHolder
 import org.fossify.calendar.helpers.ANNIVERSARY_EVENT
 import org.fossify.calendar.helpers.BIRTHDAY_EVENT
+import org.fossify.calendar.helpers.AGENDA_VIEW
 import org.fossify.calendar.helpers.DAILY_VIEW
 import org.fossify.calendar.helpers.DAY_CODE
 import org.fossify.calendar.helpers.EVENTS_LIST_VIEW
@@ -520,7 +522,7 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
 
     private fun checkIsOpenIntent(): Boolean {
         val dayCodeToOpen = intent.getStringExtra(DAY_CODE) ?: ""
-        val viewToOpen = intent.getIntExtra(VIEW_TO_OPEN, DAILY_VIEW)
+        val viewToOpen = intent.getIntExtra(VIEW_TO_OPEN, AGENDA_VIEW)
         intent.removeExtra(VIEW_TO_OPEN)
         intent.removeExtra(DAY_CODE)
         if (dayCodeToOpen.isNotEmpty()) {
@@ -600,6 +602,7 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
     private fun showViewDialog() {
         val items = arrayListOf(
             RadioItem(DAILY_VIEW, getString(R.string.daily_view)),
+            RadioItem(AGENDA_VIEW, getString(R.string.agenda_view)),
             RadioItem(WEEKLY_VIEW, getString(R.string.weekly_view)),
             RadioItem(MONTHLY_VIEW, getString(R.string.monthly_view)),
             RadioItem(MONTHLY_DAILY_VIEW, getString(R.string.monthly_daily_view)),
@@ -1096,10 +1099,15 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
 
         val fragmentDate = fragment.getCurrentDate()
         val viewOrder = arrayListOf(DAILY_VIEW, WEEKLY_VIEW, MONTHLY_VIEW, YEARLY_VIEW)
-        val currentViewIndex =
-            viewOrder.indexOf(if (currentView == MONTHLY_DAILY_VIEW) MONTHLY_VIEW else currentView)
-        val newViewIndex =
-            viewOrder.indexOf(if (newView == MONTHLY_DAILY_VIEW) MONTHLY_VIEW else newView)
+        fun indexOfView(view: Int) = viewOrder.indexOf(
+            when (view) {
+                MONTHLY_DAILY_VIEW -> MONTHLY_VIEW
+                AGENDA_VIEW -> DAILY_VIEW
+                else -> view
+            }
+        )
+        val currentViewIndex = indexOfView(currentView)
+        val newViewIndex = indexOfView(newView)
 
         return if (fragmentDate != null && currentViewIndex <= newViewIndex) {
             getDateCodeFormatForView(newView, fragmentDate)
@@ -1122,7 +1130,7 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
         val fixedDayCode = fixDayCode(dayCode)
 
         when (config.storedView) {
-            DAILY_VIEW -> bundle.putString(DAY_CODE, fixedDayCode ?: Formatter.getTodayCode())
+            DAILY_VIEW, AGENDA_VIEW -> bundle.putString(DAY_CODE, fixedDayCode ?: Formatter.getTodayCode())
             WEEKLY_VIEW -> bundle.putString(
                 WEEK_START_DATE_TIME,
                 fixedDayCode ?: getFirstDayOfWeek(DateTime())
@@ -1225,7 +1233,7 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
             return
         }
 
-        val fragment = DayFragmentsHolder()
+        val fragment = if (config.monthlyTapOpensDailyView) DayTimelineFragmentsHolder() else DayFragmentsHolder()
         val bundle = Bundle()
         bundle.putString(DAY_CODE, Formatter.getDayCodeFromDateTime(dateTime))
         fragment.arguments = bundle
@@ -1260,7 +1268,8 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
     }
 
     private fun getFragmentsHolder() = when (config.storedView) {
-        DAILY_VIEW -> DayFragmentsHolder()
+        DAILY_VIEW -> DayTimelineFragmentsHolder()
+        AGENDA_VIEW -> DayFragmentsHolder()
         MONTHLY_VIEW -> MonthFragmentsHolder()
         MONTHLY_DAILY_VIEW -> MonthDayFragmentsHolder()
         YEARLY_VIEW -> YearFragmentsHolder()

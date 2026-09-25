@@ -139,12 +139,12 @@ class Config(context: Context) : BaseConfig(context) {
             .commit()
 
     var listWidgetViewToOpen: Int
-        get() = prefs.getInt(LIST_WIDGET_VIEW_TO_OPEN, DAILY_VIEW)
+        get() = prefs.getInt(LIST_WIDGET_VIEW_TO_OPEN, AGENDA_VIEW)
         set(viewToOpenFromListWidget) = prefs.edit()
             .putInt(LIST_WIDGET_VIEW_TO_OPEN, viewToOpenFromListWidget).apply()
 
     var externalIntentViewToOpen: Int
-        get() = prefs.getInt(EXTERNAL_INTENT_VIEW_TO_OPEN, DAILY_VIEW)
+        get() = prefs.getInt(EXTERNAL_INTENT_VIEW_TO_OPEN, AGENDA_VIEW)
         set(externalIntentViewToOpen) = prefs.edit()
             .putInt(EXTERNAL_INTENT_VIEW_TO_OPEN, externalIntentViewToOpen).apply()
 
@@ -194,6 +194,10 @@ class Config(context: Context) : BaseConfig(context) {
     var showGrid: Boolean
         get() = prefs.getBoolean(SHOW_GRID, false)
         set(showGrid) = prefs.edit().putBoolean(SHOW_GRID, showGrid).apply()
+
+    var monthlyTapOpensDailyView: Boolean
+        get() = prefs.getBoolean(MONTHLY_TAP_OPENS_DAILY_VIEW, false)
+        set(monthlyTapOpensDailyView) = prefs.edit().putBoolean(MONTHLY_TAP_OPENS_DAILY_VIEW, monthlyTapOpensDailyView).apply()
 
     var loopReminders: Boolean
         get() = prefs.getBoolean(LOOP_REMINDERS, false)

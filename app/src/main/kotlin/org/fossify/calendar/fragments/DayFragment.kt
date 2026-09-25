@@ -18,12 +18,13 @@ import org.fossify.calendar.extensions.eventsHelper
 import org.fossify.calendar.extensions.getViewBitmap
 import org.fossify.calendar.extensions.printBitmap
 import org.fossify.calendar.helpers.*
+import org.fossify.calendar.interfaces.DayPage
 import org.fossify.calendar.interfaces.NavigationListener
 import org.fossify.calendar.models.Event
 import org.fossify.commons.extensions.*
 
-class DayFragment : Fragment() {
-    var mListener: NavigationListener? = null
+class DayFragment : Fragment(), DayPage {
+    override var mListener: NavigationListener? = null
     private var mTextColor = 0
     private var mDayCode = ""
     private var lastHash = 0
@@ -84,7 +85,7 @@ class DayFragment : Fragment() {
         }
     }
 
-    fun updateCalendar() {
+    override fun updateCalendar() {
         val startTS = Formatter.getDayStartTS(mDayCode)
         val endTS = Formatter.getDayEndTS(mDayCode)
         context?.eventsHelper?.getEvents(startTS, endTS) {
@@ -133,7 +134,7 @@ class DayFragment : Fragment() {
         }
     }
 
-    fun printCurrentView() {
+    override fun printCurrentView() {
         topNavigationBinding.apply {
             topLeftArrow.beGone()
             topRightArrow.beGone()

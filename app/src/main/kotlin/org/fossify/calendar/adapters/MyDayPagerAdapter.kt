@@ -7,12 +7,19 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import org.fossify.calendar.fragments.DayFragment
+import org.fossify.calendar.fragments.DayTimelineFragment
 import org.fossify.calendar.helpers.DAY_CODE
+import org.fossify.calendar.interfaces.DayPage
 import org.fossify.calendar.interfaces.NavigationListener
 
-class MyDayPagerAdapter(fm: FragmentManager, private val mCodes: List<String>, private val mListener: NavigationListener) :
+class MyDayPagerAdapter(
+    fm: FragmentManager,
+    private val mCodes: List<String>,
+    private val mListener: NavigationListener,
+    private val mTimeline: Boolean
+) :
     FragmentStatePagerAdapter(fm) {
-    private val mFragments = SparseArray<DayFragment>()
+    private val mFragments = SparseArray<DayPage>()
 
     override fun getCount() = mCodes.size
 
@@ -21,16 +28,16 @@ class MyDayPagerAdapter(fm: FragmentManager, private val mCodes: List<String>, p
         val code = mCodes[position]
         bundle.putString(DAY_CODE, code)
 
-        val fragment = DayFragment()
+        val fragment = if (mTimeline) DayTimelineFragment() else DayFragment()
         fragment.arguments = bundle
-        fragment.mListener = mListener
+        (fragment as DayPage).mListener = mListener
 
         return fragment
     }
 
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
         val item = super.instantiateItem(container, position)
-        if (item is DayFragment) {
+        if (item is DayPage) {
             mFragments.put(position, item)
         }
         return item

@@ -29,6 +29,7 @@ import org.fossify.calendar.extensions.updateWidgets
 import org.fossify.calendar.helpers.ALLOW_CHANGING_TIME_ZONES
 import org.fossify.calendar.helpers.ALLOW_CREATING_TASKS
 import org.fossify.calendar.helpers.ALLOW_CUSTOMIZE_DAY_COUNT
+import org.fossify.calendar.helpers.AGENDA_VIEW
 import org.fossify.calendar.helpers.DAILY_VIEW
 import org.fossify.calendar.helpers.DEFAULT_DURATION
 import org.fossify.calendar.helpers.DEFAULT_REMINDER_1
@@ -59,6 +60,7 @@ import org.fossify.calendar.helpers.PULL_TO_REFRESH
 import org.fossify.calendar.helpers.REMINDER_AUDIO_STREAM
 import org.fossify.calendar.helpers.REMINDER_OFF
 import org.fossify.calendar.helpers.REPLACE_DESCRIPTION
+import org.fossify.calendar.helpers.MONTHLY_TAP_OPENS_DAILY_VIEW
 import org.fossify.calendar.helpers.SHOW_GRID
 import org.fossify.calendar.helpers.SHOW_MIDNIGHT_SPANNING_EVENTS_AT_TOP
 import org.fossify.calendar.helpers.START_WEEKLY_AT
@@ -195,6 +197,7 @@ class SettingsActivity : SimpleActivity() {
         setupReplaceDescription()
         setupWeekNumbers()
         setupShowGrid()
+        setupMonthlyTapOpensDailyView()
         setupWeeklyStart()
         setupMidnightSpanEvents()
         setupAllowCustomizeDayCount()
@@ -628,6 +631,14 @@ class SettingsActivity : SimpleActivity() {
         }
     }
 
+    private fun setupMonthlyTapOpensDailyView() = binding.apply {
+        settingsMonthlyTapOpensDailyView.isChecked = config.monthlyTapOpensDailyView
+        settingsMonthlyTapOpensDailyViewHolder.setOnClickListener {
+            settingsMonthlyTapOpensDailyView.toggle()
+            config.monthlyTapOpensDailyView = settingsMonthlyTapOpensDailyView.isChecked
+        }
+    }
+
     @Deprecated("Not used on Oreo+ devices")
     private fun setupReminderSound() = binding.apply {
         settingsReminderSoundHolder.beGoneIf(isOreoPlus())
@@ -876,6 +887,7 @@ class SettingsActivity : SimpleActivity() {
     private fun showViewToOpenDialog(checkedView: Int, callback: (Int) -> Unit) {
         val items = arrayListOf(
                 RadioItem(DAILY_VIEW, getString(R.string.daily_view)),
+                RadioItem(AGENDA_VIEW, getString(R.string.agenda_view)),
                 RadioItem(WEEKLY_VIEW, getString(R.string.weekly_view)),
                 RadioItem(MONTHLY_VIEW, getString(R.string.monthly_view)),
                 RadioItem(MONTHLY_DAILY_VIEW, getString(R.string.monthly_daily_view)),
@@ -896,6 +908,7 @@ class SettingsActivity : SimpleActivity() {
     private fun getViewText(view: Int) = getString(
         when (view) {
             DAILY_VIEW -> R.string.daily_view
+            AGENDA_VIEW -> R.string.agenda_view
             WEEKLY_VIEW -> R.string.weekly_view
             MONTHLY_VIEW -> R.string.monthly_view
             MONTHLY_DAILY_VIEW -> R.string.monthly_daily_view
@@ -1159,6 +1172,7 @@ class SettingsActivity : SimpleActivity() {
                 put(DISPLAY_DESCRIPTION, config.displayDescription)
                 put(REPLACE_DESCRIPTION, config.replaceDescription)
                 put(SHOW_GRID, config.showGrid)
+                put(MONTHLY_TAP_OPENS_DAILY_VIEW, config.monthlyTapOpensDailyView)
                 put(LOOP_REMINDERS, config.loopReminders)
                 put(DIM_PAST_EVENTS, config.dimPastEvents)
                 put(DIM_COMPLETED_TASKS, config.dimCompletedTasks)
@@ -1275,6 +1289,7 @@ class SettingsActivity : SimpleActivity() {
                 DISPLAY_DESCRIPTION -> config.displayDescription = value.toBoolean()
                 REPLACE_DESCRIPTION -> config.replaceDescription = value.toBoolean()
                 SHOW_GRID -> config.showGrid = value.toBoolean()
+                MONTHLY_TAP_OPENS_DAILY_VIEW -> config.monthlyTapOpensDailyView = value.toBoolean()
                 LOOP_REMINDERS -> config.loopReminders = value.toBoolean()
                 DIM_PAST_EVENTS -> config.dimPastEvents = value.toBoolean()
                 DIM_COMPLETED_TASKS -> config.dimCompletedTasks = value.toBoolean()

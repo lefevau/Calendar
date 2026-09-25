@@ -719,6 +719,21 @@
 
             </RelativeLayout>
 
+            <RelativeLayout
+                android:id="@+id/settings_monthly_tap_opens_daily_view_holder"
+                style="@style/SettingsHolderSwitchStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyMaterialSwitch
+                    android:id="@+id/settings_monthly_tap_opens_daily_view"
+                    style="@style/SettingsSwitchStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/monthly_tap_opens_daily_view" />
+
+            </RelativeLayout>
+
             <include
                 android:id="@+id/settings_monthly_view_divider"
                 layout="@layout/divider" />

@@ -31,13 +31,16 @@ import org.fossify.calendar.databinding.WeekNowMarkerBinding
 import org.fossify.calendar.databinding.WeeklyViewDayColumnBinding
 import org.fossify.calendar.databinding.WeeklyViewDayLetterBinding
 import org.fossify.calendar.dialogs.EditRepeatingEventDialog
+import org.fossify.calendar.extensions.bindEvent
 import org.fossify.calendar.extensions.checkViewStrikeThrough
 import org.fossify.calendar.extensions.config
 import org.fossify.calendar.extensions.eventsDB
 import org.fossify.calendar.extensions.eventsHelper
+import org.fossify.calendar.extensions.getEventInkColor
 import org.fossify.calendar.extensions.getWeeklyViewItemHeight
 import org.fossify.calendar.extensions.intersects
 import org.fossify.calendar.extensions.seconds
+import org.fossify.calendar.extensions.setEventMarkerBackground
 import org.fossify.calendar.extensions.shouldStrikeThrough
 import org.fossify.calendar.helpers.Config
 import org.fossify.calendar.helpers.EDIT_ALL_OCCURRENCES
@@ -764,7 +767,7 @@ class WeekFragment : Fragment(), WeeklyCalendar {
                         } else {
                             event.color
                         }
-                        var textColor = backgroundColor.getContrastColor()
+                        var textColor = backgroundColor.getEventInkColor()
                         val currentEventWeeklyView = eventTimeRanges[currentDayCode]!![event.id]
 
                         val adjustAlpha = if (event.isTask()) {
@@ -778,35 +781,16 @@ class WeekFragment : Fragment(), WeeklyCalendar {
                             textColor = textColor.adjustAlpha(HIGHER_ALPHA)
                         }
 
-                        root.background = ColorDrawable(backgroundColor)
                         dayColumn.addView(root)
                         root.y = currentEventWeeklyView!!.range.lower * minuteHeight
 
                         // compensate grid offset
                         root.y -= (currentEventWeeklyView.range.lower / 60) / 2
 
-                        weekEventTaskImage.beVisibleIf(event.isTask())
-                        if (event.isTask()) {
-                            weekEventTaskImage.applyColorFilter(textColor)
-                        }
-
-                        weekEventLabel.apply {
-                            setTextColor(textColor)
-                            maxLines = if (event.isTask() || event.startTS == event.endTS) {
-                                1
-                            } else {
-                                3
-                            }
-
-                            text = event.title
-                            checkViewStrikeThrough(event.shouldStrikeThrough())
-                            contentDescription = text
-
-                            minHeight = if (event.startTS == event.endTS) {
-                                minimalHeight
-                            } else {
-                                ((currentEventWeeklyView.range.upper - currentEventWeeklyView.range.lower) * minuteHeight).toInt() - 1
-                            }
+                        val eventHeight = if (event.startTS == event.endTS) {
+                            minimalHeight
+                        } else {
+                            ((currentEventWeeklyView.range.upper - currentEventWeeklyView.range.lower) * minuteHeight).toInt() - 1
                         }
 
                         (root.layoutParams as RelativeLayout.LayoutParams).apply {
@@ -816,6 +800,8 @@ class WeekFragment : Fragment(), WeeklyCalendar {
                                 root.x += density
                                 width -= density
                             }
+                            height = eventHeight
+                            bindEvent(event, width, eventHeight, backgroundColor, textColor)
                         }
 
                         root.setOnClickListener {
@@ -931,7 +917,7 @@ class WeekFragment : Fragment(), WeeklyCalendar {
             } else {
                 event.color
             }
-            var textColor = backgroundColor.getContrastColor()
+            var textColor = backgroundColor.getEventInkColor()
 
             val adjustAlpha = if (event.isTask()) {
                 dimCompletedTasks && event.isTaskCompleted()
@@ -944,7 +930,7 @@ class WeekFragment : Fragment(), WeeklyCalendar {
                 textColor = textColor.adjustAlpha(HIGHER_ALPHA)
             }
 
-            root.background = ColorDrawable(backgroundColor)
+            root.setEventMarkerBackground(backgroundColor)
 
             weekEventLabel.apply {
                 setTextColor(textColor)

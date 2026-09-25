@@ -10,6 +10,7 @@ import androidx.viewpager.widget.ViewPager
 import org.fossify.calendar.activities.MainActivity
 import org.fossify.calendar.adapters.MyDayPagerAdapter
 import org.fossify.calendar.databinding.FragmentDaysHolderBinding
+import org.fossify.calendar.helpers.AGENDA_VIEW
 import org.fossify.calendar.helpers.DAILY_VIEW
 import org.fossify.calendar.helpers.DAY_CODE
 import org.fossify.calendar.helpers.Formatter
@@ -20,7 +21,7 @@ import org.fossify.commons.extensions.setupDialogStuff
 import org.fossify.commons.views.MyViewPager
 import org.joda.time.DateTime
 
-class DayFragmentsHolder : MyFragmentHolder(), NavigationListener {
+open class DayFragmentsHolder : MyFragmentHolder(), NavigationListener {
     private val PREFILLED_DAYS = 251
 
     private lateinit var viewPager: MyViewPager
@@ -29,7 +30,7 @@ class DayFragmentsHolder : MyFragmentHolder(), NavigationListener {
     private var currentDayCode = ""
     private var isGoToTodayVisible = false
 
-    override val viewType = DAILY_VIEW
+    override val viewType = AGENDA_VIEW
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +49,7 @@ class DayFragmentsHolder : MyFragmentHolder(), NavigationListener {
 
     private fun setupFragment() {
         val codes = getDays(currentDayCode)
-        val dailyAdapter = MyDayPagerAdapter(requireActivity().supportFragmentManager, codes, this)
+        val dailyAdapter = MyDayPagerAdapter(requireActivity().supportFragmentManager, codes, this, viewType == DAILY_VIEW)
         defaultDailyPage = codes.size / 2
 
         viewPager.apply {
