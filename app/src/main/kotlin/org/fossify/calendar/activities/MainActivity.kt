@@ -1570,7 +1570,9 @@ class MainActivity : SimpleActivity(), RefreshRecyclerViewListener {
     private fun openDayAt(timestamp: Long) {
         val dayCode = Formatter.getDayCodeFromTS(timestamp / 1000L)
         binding.calendarFab.beVisible()
-        config.storedView = DAILY_VIEW
+        if (config.externalIntentViewToOpen != LAST_VIEW) {
+            config.storedView = config.externalIntentViewToOpen
+        }
         updateViewPager(dayCode)
     }
 

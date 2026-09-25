@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Setting to choose the view opened from other apps ([#42])
 
 ## [1.11.0] - 2026-09-23
 ### Added
@@ -218,6 +220,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#15]: https://github.com/FossifyOrg/Calendar/issues/15
 [#34]: https://github.com/FossifyOrg/Calendar/issues/34
+[#42]: https://github.com/FossifyOrg/Calendar/issues/42
 [#45]: https://github.com/FossifyOrg/Calendar/issues/45
 [#49]: https://github.com/FossifyOrg/Calendar/issues/49
 [#99]: https://github.com/FossifyOrg/Calendar/issues/99

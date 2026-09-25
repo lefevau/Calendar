@@ -840,6 +840,29 @@
 
             </RelativeLayout>
 
+            <RelativeLayout
+                android:id="@+id/settings_external_intent_view_to_open_holder"
+                style="@style/SettingsHolderTextViewStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_external_intent_view_to_open_label"
+                    style="@style/SettingsTextLabelStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/view_to_open_from_other_apps" />
+
+                <org.fossify.commons.views.MyTextView
+                    android:id="@+id/settings_external_intent_view_to_open"
+                    style="@style/SettingsTextValueStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/settings_external_intent_view_to_open_label"
+                    tools:text="@string/daily_view" />
+
+            </RelativeLayout>
+
             <include
                 android:id="@+id/settings_widgets_divider"
                 layout="@layout/divider" />

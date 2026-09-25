@@ -143,6 +143,11 @@ class Config(context: Context) : BaseConfig(context) {
         set(viewToOpenFromListWidget) = prefs.edit()
             .putInt(LIST_WIDGET_VIEW_TO_OPEN, viewToOpenFromListWidget).apply()
 
+    var externalIntentViewToOpen: Int
+        get() = prefs.getInt(EXTERNAL_INTENT_VIEW_TO_OPEN, DAILY_VIEW)
+        set(externalIntentViewToOpen) = prefs.edit()
+            .putInt(EXTERNAL_INTENT_VIEW_TO_OPEN, externalIntentViewToOpen).apply()
+
     var caldavSync: Boolean
         get() = prefs.getBoolean(CALDAV_SYNC, false)
         set(caldavSync) {

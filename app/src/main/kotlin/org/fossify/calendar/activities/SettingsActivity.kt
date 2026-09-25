@@ -42,6 +42,7 @@ import org.fossify.calendar.helpers.DIM_PAST_EVENTS
 import org.fossify.calendar.helpers.DISPLAY_DESCRIPTION
 import org.fossify.calendar.helpers.DISPLAY_PAST_EVENTS
 import org.fossify.calendar.helpers.EVENTS_LIST_VIEW
+import org.fossify.calendar.helpers.EXTERNAL_INTENT_VIEW_TO_OPEN
 import org.fossify.calendar.helpers.Formatter
 import org.fossify.calendar.helpers.HIGHLIGHT_WEEKENDS
 import org.fossify.calendar.helpers.HIGHLIGHT_WEEKENDS_COLOR
@@ -218,6 +219,7 @@ class SettingsActivity : SimpleActivity() {
         setupFontSize()
         setupCustomizeWidgetColors()
         setupViewToOpenFromListWidget()
+        setupViewToOpenFromExternalIntent()
         setupDimEvents()
         setupDimCompletedTasks()
         setupAllowChangingTimeZones()
@@ -851,32 +853,48 @@ class SettingsActivity : SimpleActivity() {
     }
 
     private fun setupViewToOpenFromListWidget() = binding.apply {
-        settingsListWidgetViewToOpen.text = getDefaultViewText()
+        settingsListWidgetViewToOpen.text = getViewText(config.listWidgetViewToOpen)
         settingsListWidgetViewToOpenHolder.setOnClickListener {
-            val items = arrayListOf(
+            showViewToOpenDialog(config.listWidgetViewToOpen) {
+                config.listWidgetViewToOpen = it
+                settingsListWidgetViewToOpen.text = getViewText(it)
+                updateWidgets()
+            }
+        }
+    }
+
+    private fun setupViewToOpenFromExternalIntent() = binding.apply {
+        settingsExternalIntentViewToOpen.text = getViewText(config.externalIntentViewToOpen)
+        settingsExternalIntentViewToOpenHolder.setOnClickListener {
+            showViewToOpenDialog(config.externalIntentViewToOpen) {
+                config.externalIntentViewToOpen = it
+                settingsExternalIntentViewToOpen.text = getViewText(it)
+            }
+        }
+    }
+
+    private fun showViewToOpenDialog(checkedView: Int, callback: (Int) -> Unit) {
+        val items = arrayListOf(
                 RadioItem(DAILY_VIEW, getString(R.string.daily_view)),
                 RadioItem(WEEKLY_VIEW, getString(R.string.weekly_view)),
                 RadioItem(MONTHLY_VIEW, getString(R.string.monthly_view)),
                 RadioItem(MONTHLY_DAILY_VIEW, getString(R.string.monthly_daily_view)),
                 RadioItem(YEARLY_VIEW, getString(R.string.yearly_view)),
                 RadioItem(EVENTS_LIST_VIEW, getString(R.string.simple_event_list)),
-                RadioItem(LAST_VIEW, getString(R.string.last_view))
-            )
+            RadioItem(LAST_VIEW, getString(R.string.last_view))
+        )
 
-            RadioGroupDialog(
-                activity = this@SettingsActivity,
-                items = items,
-                checkedItemId = config.listWidgetViewToOpen
-            ) {
-                config.listWidgetViewToOpen = it as Int
-                settingsListWidgetViewToOpen.text = getDefaultViewText()
-                updateWidgets()
-            }
+        RadioGroupDialog(
+            activity = this,
+            items = items,
+            checkedItemId = checkedView
+        ) {
+            callback(it as Int)
         }
     }
 
-    private fun getDefaultViewText() = getString(
-        when (config.listWidgetViewToOpen) {
+    private fun getViewText(view: Int) = getString(
+        when (view) {
             DAILY_VIEW -> R.string.daily_view
             WEEKLY_VIEW -> R.string.weekly_view
             MONTHLY_VIEW -> R.string.monthly_view
@@ -1136,6 +1154,7 @@ class SettingsActivity : SimpleActivity() {
                 put(DISPLAY_PAST_EVENTS, config.displayPastEvents)
                 put(FONT_SIZE, config.fontSize)
                 put(LIST_WIDGET_VIEW_TO_OPEN, config.listWidgetViewToOpen)
+                put(EXTERNAL_INTENT_VIEW_TO_OPEN, config.externalIntentViewToOpen)
                 put(REMINDER_AUDIO_STREAM, config.reminderAudioStream)
                 put(DISPLAY_DESCRIPTION, config.displayDescription)
                 put(REPLACE_DESCRIPTION, config.replaceDescription)
@@ -1251,6 +1270,7 @@ class SettingsActivity : SimpleActivity() {
                 DISPLAY_PAST_EVENTS -> config.displayPastEvents = value.toInt()
                 FONT_SIZE -> config.fontSize = value.toInt()
                 LIST_WIDGET_VIEW_TO_OPEN -> config.listWidgetViewToOpen = value.toInt()
+                EXTERNAL_INTENT_VIEW_TO_OPEN -> config.externalIntentViewToOpen = value.toInt()
                 REMINDER_AUDIO_STREAM -> config.reminderAudioStream = value.toInt()
                 DISPLAY_DESCRIPTION -> config.displayDescription = value.toBoolean()
                 REPLACE_DESCRIPTION -> config.replaceDescription = value.toBoolean()
