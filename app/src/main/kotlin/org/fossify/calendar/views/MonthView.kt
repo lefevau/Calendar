@@ -2,9 +2,10 @@ package org.fossify.calendar.views
 
 import android.content.Context
 import android.graphics.*
+import android.os.Build
 import android.text.TextPaint
-import android.text.TextUtils
 import android.util.AttributeSet
+import android.util.LongSparseArray
 import android.util.SparseIntArray
 import android.view.View
 import org.fossify.calendar.R
@@ -28,7 +29,6 @@ import kotlin.math.min
 // used in the Monthly view fragment, 1 view per screen
 class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(context, attrs, defStyle) {
     companion object {
-        private const val BG_CORNER_RADIUS = 8f
         private const val EVENT_DOT_COLUMN_COUNT = 3
         private const val EVENT_DOT_ROW_COUNT = 1
     }
@@ -39,6 +39,7 @@ class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(con
     private var circleStrokePaint: Paint
     private var plusTextPaint: Paint
     private var eventDotPaint: Paint
+    private var morePaint: Paint
     private var config = context.config
     private var dayWidth = 0f
     private var dayHeight = 0f
@@ -49,7 +50,11 @@ class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(con
     private var eventTitleHeight = 0
     private var currDayOfWeek = 0
     private var smallPadding = 0
-    private var maxEventsPerDay = 0
+    private var chipHeight = 0
+    private var chipGap = 0
+    private var chipRadius = 0f
+    private var chipPadding = 0f
+    private var chipTextBaseline = 0f
     private var horizontalOffset = 0
     private var showWeekNumbers = false
     private var dimPastEvents = true
@@ -63,7 +68,10 @@ class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(con
     private var dayLetters = ArrayList<String>()
     private var days = ArrayList<DayMonthly>()
     private var dayVerticalOffsets = SparseIntArray()
+    private var remainingEvents = IntArray(ROW_COUNT * COLUMN_COUNT)
+    private var hiddenEvents = IntArray(ROW_COUNT * COLUMN_COUNT)
     private var selectedDayCoords = Point(-1, -1)
+    private var fadeShaders = LongSparseArray<Shader>()
 
     constructor(context: Context, attrs: AttributeSet) : this(context, attrs, 0)
 
@@ -106,14 +114,27 @@ class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(con
             color = primaryColor
         }
 
-        val smallerTextSize = resources.getDimensionPixelSize(org.fossify.commons.R.dimen.smaller_text_size)
-        eventTitleHeight = smallerTextSize
+        val density = resources.displayMetrics.density
+        val chipTextSize = resources.getDimension(R.dimen.month_chip_text_size)
+        eventTitleHeight = chipTextSize.toInt()
         eventTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = textColor
-            textSize = smallerTextSize.toFloat()
+            textSize = chipTextSize
             textAlign = Paint.Align.LEFT
             typeface = FontHelper.getTypeface(context)
         }
+
+        morePaint = Paint(eventTitlePaint).apply {
+            color = textColor.adjustAlpha(0.6f)
+            typeface = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) Typeface.create(typeface, 500, false) else typeface
+        }
+
+        chipHeight = max((15 * density).toInt(), (chipTextSize * 1.5f).toInt())
+        chipGap = (2 * density).toInt()
+        chipRadius = 4 * density
+        chipPadding = 4 * density
+        val fm = eventTitlePaint.fontMetrics
+        chipTextBaseline = chipHeight / 2f - (fm.ascent + fm.descent) / 2
 
         initWeekDayLetters()
         setupCurrentDayOfWeekIndex()
@@ -266,16 +287,25 @@ class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(con
                     }
 
                     canvas.drawText(dayNumber, xPosCenter, textY, textPaint)
-                    dayVerticalOffsets.put(day.indexOnMonthView, (verticalOffset + textPaint.textSize * 2).toInt())
+                    dayVerticalOffsets.put(day.indexOnMonthView, (verticalOffset + textPaint.textSize * 1.5f).toInt())
                 }
                 curId++
             }
         }
 
         if (!isMonthDayView) {
+            remainingEvents.fill(0)
+            hiddenEvents.fill(0)
+            allEvents.forEach { event ->
+                for (i in event.startDayIndex until min(event.startDayIndex + event.daysCnt, remainingEvents.size)) {
+                    remainingEvents[i]++
+                }
+            }
+
             for (event in allEvents) {
                 drawEvent(event, canvas)
             }
+            drawMoreLabels(canvas)
         }
     }
 
@@ -328,66 +358,111 @@ class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(con
     }
 
     private fun measureDaySize(canvas: Canvas) {
-        dayWidth = (canvas.width - horizontalOffset) / 7f
+        val newDayWidth = (canvas.width - horizontalOffset) / 7f
+        if (newDayWidth != dayWidth) {
+            fadeShaders.clear()
+        }
+        dayWidth = newDayWidth
         dayHeight = (canvas.height - weekDaysLetterHeight) / ROW_COUNT.toFloat()
-        val availableHeightForEvents = dayHeight.toInt() - weekDaysLetterHeight
-        maxEventsPerDay = availableHeightForEvents / eventTitleHeight
     }
 
     private fun drawEvent(event: MonthViewEvent, canvas: Canvas) {
-        var verticalOffset = 0
-        for (i in 0 until min(event.daysCnt, 7 - event.startDayIndex % 7)) {
-            verticalOffset = max(verticalOffset, dayVerticalOffsets[event.startDayIndex + i])
-        }
-        val xPos = event.startDayIndex % 7 * dayWidth + horizontalOffset
-        val yPos = (event.startDayIndex / 7) * dayHeight
-        val xPosCenter = xPos + dayWidth / 2
+        val span = min(event.daysCnt, 7 - event.startDayIndex % 7)
+        val top = (event.startDayIndex until event.startDayIndex + span).maxOf { dayVerticalOffsets[it] }
+        val rowBottom = weekDaysLetterHeight + dayHeight
+        val isLastLane = top + chipHeight * 2 + chipGap > rowBottom
+        val fits = top + chipHeight <= rowBottom
 
-        if (verticalOffset - eventTitleHeight * 2 > dayHeight) {
-            val paint = getTextPaint(days[event.startDayIndex])
-            paint.color = textColor
-            canvas.drawText("...", xPosCenter, yPos + verticalOffset - eventTitleHeight / 2, paint)
-            return
+        // per day: once a day hides an event, later ones stay hidden so its last lane is kept for "+N more"
+        var hiddenMask = 0
+        for (i in 0 until span) {
+            val day = event.startDayIndex + i
+            if (!fits || hiddenEvents[day] > 0 || isLastLane && remainingEvents[day] > 1) {
+                hiddenMask = hiddenMask or (1 shl i)
+                hiddenEvents[day]++
+            }
+            remainingEvents[day]--
         }
 
-        // event background rectangle
-        val backgroundY = yPos + verticalOffset
-        val bgLeft = xPos + smallPadding
-        val bgTop = backgroundY + smallPadding - eventTitleHeight
-        var bgRight = xPos - smallPadding + dayWidth * event.daysCnt
-        val bgBottom = backgroundY + smallPadding * 2
-        if (bgRight > canvas.width.toFloat()) {
-            bgRight = canvas.width.toFloat() - smallPadding
-            val newStartDayIndex = (event.startDayIndex / 7 + 1) * 7
-            if (newStartDayIndex < 42) {
-                val newEvent = event.copy(startDayIndex = newStartDayIndex, daysCnt = event.daysCnt - (newStartDayIndex - event.startDayIndex))
-                drawEvent(newEvent, canvas)
+        // draw each run of visible days as its own chip
+        var runStart = -1
+        for (i in 0..span) {
+            val isVisible = i < span && hiddenMask and (1 shl i) == 0
+            if (isVisible && runStart == -1) {
+                runStart = i
+            } else if (!isVisible && runStart != -1) {
+                drawEventChip(event, canvas, event.startDayIndex + runStart, i - runStart, top)
+                runStart = -1
             }
         }
 
-        bgRectF.set(bgLeft, bgTop, bgRight, bgBottom)
-        canvas.drawRoundRect(bgRectF, BG_CORNER_RADIUS, BG_CORNER_RADIUS, getEventBackgroundColor(event))
-
-        val specificEventTitlePaint = getEventTitlePaint(event)
-        var taskIconWidth = 0
-        if (event.isTask) {
-            val taskIcon = resources.getColoredDrawableWithColor(R.drawable.ic_task_vector, specificEventTitlePaint.color).mutate()
-            val taskIconY = yPos.toInt() + verticalOffset - eventTitleHeight + smallPadding * 2
-            taskIcon.setBounds(xPos.toInt() + smallPadding * 2, taskIconY, xPos.toInt() + eventTitleHeight + smallPadding * 2, taskIconY + eventTitleHeight)
-            taskIcon.draw(canvas)
-            taskIconWidth += eventTitleHeight + smallPadding
-        }
-
-        drawEventTitle(event, canvas, xPos + taskIconWidth, yPos + verticalOffset, bgRight - bgLeft - smallPadding - taskIconWidth, specificEventTitlePaint)
-
-        for (i in 0 until min(event.daysCnt, 7 - event.startDayIndex % 7)) {
-            dayVerticalOffsets.put(event.startDayIndex + i, verticalOffset + eventTitleHeight + smallPadding * 2)
+        val newStartDayIndex = (event.startDayIndex / 7 + 1) * 7
+        if (event.daysCnt > span && newStartDayIndex < ROW_COUNT * COLUMN_COUNT) {
+            drawEvent(event.copy(startDayIndex = newStartDayIndex, daysCnt = event.daysCnt - span), canvas)
         }
     }
 
-    private fun drawEventTitle(event: MonthViewEvent, canvas: Canvas, x: Float, y: Float, availableWidth: Float, paint: Paint) {
-        val ellipsized = TextUtils.ellipsize(event.title, eventTitlePaint, availableWidth - smallPadding, TextUtils.TruncateAt.END)
-        canvas.drawText(event.title, 0, ellipsized.length, x + smallPadding * 2, y, paint)
+    private fun drawEventChip(event: MonthViewEvent, canvas: Canvas, startDayIndex: Int, span: Int, top: Int) {
+        val xPos = startDayIndex % 7 * dayWidth + horizontalOffset
+        val yPos = (startDayIndex / 7) * dayHeight
+        val inset = chipGap / 2f
+        bgRectF.set(xPos + inset, yPos + top, xPos + dayWidth * span - inset, yPos + top + chipHeight)
+        canvas.drawRoundRect(bgRectF, chipRadius, chipRadius, getEventBackgroundColor(event))
+
+        val titlePaint = getEventTitlePaint(event)
+        var textLeft = bgRectF.left + chipPadding
+        if (event.isTask) {
+            val iconSize = eventTitleHeight
+            val iconTop = (bgRectF.centerY() - iconSize / 2f).toInt()
+            val taskIcon = resources.getColoredDrawableWithColor(R.drawable.ic_task_vector, titlePaint.color).mutate()
+            taskIcon.setBounds(textLeft.toInt(), iconTop, textLeft.toInt() + iconSize, iconTop + iconSize)
+            taskIcon.draw(canvas)
+            textLeft += iconSize + smallPadding * 2
+        }
+
+        drawEventTitle(event.title, canvas, textLeft, bgRectF.right - chipPadding, yPos + top + chipTextBaseline, titlePaint)
+        for (day in startDayIndex until startDayIndex + span) {
+            dayVerticalOffsets.put(day, top + chipHeight + chipGap)
+        }
+    }
+
+    // fade out overflowing titles instead of ellipsizing
+    private fun drawEventTitle(title: String, canvas: Canvas, left: Float, right: Float, baseline: Float, paint: Paint) {
+        val width = right - left
+        if (width <= 0) return
+
+        if (paint.measureText(title) > width) {
+            val opaque = paint.color or Color.BLACK
+            val key = (width.toLong() shl 32) or (opaque.toLong() and 0xFFFFFFFFL)
+            paint.shader = fadeShaders[key] ?: LinearGradient(width * 0.75f, 0f, width, 0f, opaque, opaque and 0x00FFFFFF, Shader.TileMode.CLAMP)
+                .also { fadeShaders.put(key, it) }
+        }
+
+        canvas.save()
+        canvas.translate(left, 0f)
+        canvas.clipRect(0f, bgRectF.top, width, bgRectF.bottom)
+        canvas.drawText(title, 0f, baseline, paint)
+        canvas.restore()
+    }
+
+    private fun drawMoreLabels(canvas: Canvas) {
+        hiddenEvents.forEachIndexed { index, hidden ->
+            val top = dayVerticalOffsets[index]
+            if (hidden == 0 || top + chipHeight > weekDaysLetterHeight + dayHeight) return@forEachIndexed
+
+            val cellLeft = index % 7 * dayWidth + horizontalOffset
+            val cellTop = (index / 7) * dayHeight + top
+            val maxWidth = dayWidth - chipGap - chipPadding * 2
+            var label = resources.getString(R.string.plus_x_more, hidden)
+            if (morePaint.measureText(label) > maxWidth) {
+                label = "+$hidden"
+            }
+
+            canvas.save()
+            canvas.clipRect(cellLeft, cellTop, cellLeft + dayWidth, cellTop + chipHeight)
+            canvas.drawText(label, cellLeft + chipGap / 2f + chipPadding, cellTop + chipTextBaseline, morePaint)
+            canvas.restore()
+        }
     }
 
     private fun getTextPaint(startDay: DayMonthly): Paint {
@@ -426,7 +501,7 @@ class MonthView(context: Context, attrs: AttributeSet, defStyle: Int) : View(con
     }
 
     private fun getEventTitlePaint(event: MonthViewEvent): Paint {
-        var paintColor = event.color.getContrastColor()
+        var paintColor = event.color.getEventInkColor()
         val adjustAlpha = when {
             event.isTask -> dimCompletedTasks && event.isTaskCompleted
             else -> dimPastEvents && event.isPastEvent && !isPrintVersion

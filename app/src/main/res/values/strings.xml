@@ -3,6 +3,7 @@
     <string name="app_launcher_name">Calendar</string>
     <string name="change_view">Change view</string>
     <string name="daily_view">Daily view</string>
+    <string name="plus_x_more">+%d more</string>
     <string name="agenda_view">Agenda</string>
     <string name="collapse">Collapse</string>
     <string name="monthly_tap_opens_daily_view">Open daily view when tapping a day</string>
